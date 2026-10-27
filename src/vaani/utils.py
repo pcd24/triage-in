@@ -34,6 +34,18 @@ def load_config(path: str | Path) -> dict[str, Any]:
         return yaml.safe_load(f) or {}
 
 
+def data_dirs(cfg: dict[str, Any], smoke: bool = False) -> dict[str, Path]:
+    """raw / interim / processed dirs; smoke runs use separate smoke/ subfolders so
+    throwaway outputs can never mix with real data."""
+    p = cfg["paths"]
+    dirs = {k: REPO_ROOT / p[f"{k}_dir"] for k in ("raw", "interim", "processed")}
+    if smoke:
+        dirs = {k: v / "smoke" for k, v in dirs.items()}
+    for d in dirs.values():
+        d.mkdir(parents=True, exist_ok=True)
+    return dirs
+
+
 def set_seed(seed: int) -> None:
     """Seed Python, NumPy, and torch / TensorFlow if installed in this environment."""
     os.environ["PYTHONHASHSEED"] = str(seed)

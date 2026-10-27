@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      # Core + dev deps only: the data pipeline, tests and lint need neither torch nor TF.
+      - run: pip install -e ".[dev]" google-genai==2.33.0
+      - run: make lint
+      - run: make test
+      - name: Smoke pipeline (offline fake LLM, real CMTET download)
+        run: make smoke

@@ -1,0 +1,95 @@
+"""Phase 1d (part 1): generate ~350 candidate TEST messages for human review.
+
+Uses a different model and different prompts than the training generator, so the
+test set does not inherit the training generator's phrasing. Output is a CSV you
+check by hand: fix any wrong label and set `verified` to `yes` (or `drop`).
+
+    python -m vaani.data.generate_test --yes
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import logging
+from pathlib import Path
+
+from vaani import prompts
+from vaani.data.gen_runner import collect, run_generation
+from vaani.data.spec_plan import plan_specs
+from vaani.llm_eval.providers import FakeProvider, Provider, build_provider
+from vaani.utils import REPO_ROOT, data_dirs, load_config, setup_logging
+
+logger = logging.getLogger(__name__)
+
+REVIEW_COLUMNS = ["id", "text", "category", "sentiment", "urgency", "lang_mix", "verified", "notes"]
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument("--config", default="configs/data.yaml")
+    ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--yes", action="store_true", help="confirm and run the generator")
+    ap.add_argument("--force", action="store_true", help="overwrite an existing review CSV")
+    args = ap.parse_args()
+    setup_logging()
+
+    cfg = load_config(args.config)
+    tcfg = cfg["test_synthetic"]
+    n = cfg["smoke_n"] // 4 if args.smoke else tcfg["n_examples"]
+    specs = plan_specs(n, cfg["plan"], seed=tcfg["seed"], id_prefix="tst")
+    dirs = data_dirs(cfg, args.smoke)
+    review_csv = (
+        dirs["interim"] / "test_synthetic_review.csv"
+        if args.smoke
+        else REPO_ROOT / cfg["paths"]["review_test_csv"]
+    )
+    if review_csv.exists() and not args.force:
+        raise SystemExit(
+            f"{review_csv} exists (it may contain your corrections). Use --force to overwrite."
+        )
+
+    logger.info(
+        "Test generator %s: %d messages in %d calls (local model: $0)",
+        tcfg["generator"]["model"],
+        n,
+        -(-n // tcfg["batch_size"]),
+    )
+    if args.smoke:
+        provider: Provider = FakeProvider({s["id"]: s for s in specs})
+    else:
+        if not args.yes:
+            logger.info("Estimate only. Re-run with --yes to generate.")
+            return
+        provider = build_provider(tcfg["generator"])
+
+    cache = dirs["raw"] / "test_synthetic"
+    run_generation(
+        specs,
+        provider,
+        system=prompts.TEST_GEN_SYSTEM,
+        prompt_fn=prompts.test_gen_prompt,
+        cache_dir=cache,
+        batch_size=tcfg["batch_size"],
+        calls_per_step=tcfg["calls_per_step"],
+        temperature=tcfg["temperature"],
+        max_tokens=tcfg["max_tokens"],
+    )
+    records, usage = collect(specs, cache, tcfg["batch_size"], source="synthetic_test")
+    write_review_csv(review_csv, records)
+    logger.info("Wrote %d rows to %s for review; usage %s", len(records), review_csv, usage)
+
+
+def write_review_csv(path: Path, records: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8-sig") as f:  # utf-8-sig opens cleanly in Excel
+        w = csv.DictWriter(f, fieldnames=REVIEW_COLUMNS)
+        w.writeheader()
+        for r in records:
+            w.writerow({**{k: r.get(k, "") for k in REVIEW_COLUMNS}, "verified": "", "notes": ""})
+
+
+if __name__ == "__main__":
+    main()

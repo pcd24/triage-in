@@ -1,0 +1,161 @@
+"""Batched, cached, resumable LLM generation shared by the train and test generators.
+
+Every raw reply is cached to `<cache_dir>/<batch>.json` before parsing, so a crash or
+quota limit never wastes calls: rerunning skips finished batches.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
+
+from vaani.data.llm_json import extract_json_list
+from vaani.data.spec_plan import batched
+from vaani.llm_eval.providers import Provider
+
+logger = logging.getLogger(__name__)
+
+CHARS_PER_TOKEN = 3.5  # rough; code-mixed text tokenizes worse than plain English
+OUT_TOKENS_PER_WORD = 2.2
+
+
+def estimate(
+    specs: list[dict[str, Any]],
+    batch_size: int,
+    system: str,
+    prompt_fn: Callable[[list[dict[str, Any]]], str],
+    prices: dict[str, float | None] | None,
+) -> dict[str, Any]:
+    """Count calls and rough tokens; cost only if real prices are configured."""
+    batches = batched(specs, batch_size)
+    in_tok = sum((len(system) + len(prompt_fn(b))) / CHARS_PER_TOKEN for b in batches)
+    out_tok = sum(s["length"] * OUT_TOKENS_PER_WORD + 15 for s in specs)
+    est: dict[str, Any] = {
+        "n_examples": len(specs),
+        "n_calls": len(batches),
+        "est_input_tokens": int(in_tok),
+        "est_output_tokens": int(out_tok),
+        "est_cost_usd": None,
+    }
+    if prices and prices.get("input") is not None and prices.get("output") is not None:
+        est["est_cost_usd"] = round(
+            in_tok / 1e6 * prices["input"] + out_tok / 1e6 * prices["output"], 4
+        )
+    return est
+
+
+def _cache_ok(path: Path) -> bool:
+    if not path.exists():
+        return False
+    try:
+        return bool(json.loads(path.read_text(encoding="utf-8")).get("ok"))
+    except json.JSONDecodeError:
+        return False
+
+
+def _parse_texts(reply: str, ids: list[str]) -> dict[str, str]:
+    items = extract_json_list(reply)
+    wanted = set(ids)
+    texts = {}
+    for it in items:
+        if str(it.get("id")) in wanted and isinstance(it.get("text"), str) and it["text"].strip():
+            texts[str(it["id"])] = it["text"].strip()
+    return texts
+
+
+def run_generation(
+    specs: list[dict[str, Any]],
+    provider: Provider,
+    *,
+    system: str,
+    prompt_fn: Callable[[list[dict[str, Any]]], str],
+    cache_dir: Path,
+    batch_size: int,
+    calls_per_step: int = 1,
+    temperature: float = 1.0,
+    max_tokens: int = 4096,
+) -> None:
+    """Generate text for all specs, writing one cache file per batch."""
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    batches = list(enumerate(batched(specs, batch_size)))
+    todo = [(i, b) for i, b in batches if not _cache_ok(cache_dir / f"b{i:04d}.json")]
+    logger.info(
+        "%d/%d batches already cached; %d to run", len(batches) - len(todo), len(batches), len(todo)
+    )
+    for step in batched(todo, calls_per_step):
+        prompts = [prompt_fn(b) for _, b in step]
+        results = provider.generate_many(
+            system, prompts, temperature=temperature, max_tokens=max_tokens, json_mode=True
+        )
+        for (i, b), prompt, res in zip(step, prompts, results, strict=True):
+            ids = [s["id"] for s in b]
+            entry: dict[str, Any] = {
+                "batch": i,
+                "provider": provider.name,
+                "model": provider.model,
+                "prompt": prompt,
+                "response": res.text,
+                "input_tokens": res.input_tokens,
+                "output_tokens": res.output_tokens,
+            }
+            try:
+                texts = _parse_texts(res.text, ids)
+                # Accept a batch if most items came back; missing ids are logged, not invented.
+                entry["ok"] = len(texts) >= 0.8 * len(ids)
+                entry["n_parsed"] = len(texts)
+            except ValueError as e:
+                entry.update(ok=False, error=str(e))
+            (cache_dir / f"b{i:04d}.json").write_text(
+                json.dumps(entry, ensure_ascii=False, indent=1), encoding="utf-8"
+            )
+            if not entry["ok"]:
+                logger.warning(
+                    "Batch %d not usable (%s); it will be retried on rerun",
+                    i,
+                    entry.get("error", "too few items"),
+                )
+        logger.info("cached batches up to %d", step[-1][0])
+
+
+def collect(
+    specs: list[dict[str, Any]], cache_dir: Path, batch_size: int, source: str
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Join cached texts with their planned labels. Returns (records, usage summary)."""
+    records: list[dict[str, Any]] = []
+    usage = {"calls": 0, "input_tokens": 0, "output_tokens": 0, "missing": 0, "failed_batches": 0}
+    for i, b in enumerate(batched(specs, batch_size)):
+        path = cache_dir / f"b{i:04d}.json"
+        if not path.exists():
+            usage["failed_batches"] += 1
+            usage["missing"] += len(b)
+            continue
+        entry = json.loads(path.read_text(encoding="utf-8"))
+        usage["calls"] += 1
+        usage["input_tokens"] += entry.get("input_tokens", 0)
+        usage["output_tokens"] += entry.get("output_tokens", 0)
+        if not entry.get("ok"):
+            usage["failed_batches"] += 1
+            usage["missing"] += len(b)
+            continue
+        texts = _parse_texts(entry["response"], [s["id"] for s in b])
+        for s in b:
+            if s["id"] not in texts:
+                usage["missing"] += 1
+                continue
+            records.append(
+                {
+                    "id": s["id"],
+                    "text": texts[s["id"]],
+                    "category": s["category"],
+                    "sentiment": s["sentiment"],
+                    "urgency": s["urgency"],
+                    "lang_mix": s["lang_mix"],
+                    "source": source,
+                    "gen_model": entry.get("model"),
+                    "domain": s["domain"],
+                }
+            )
+    return records, usage

@@ -1,29 +1,76 @@
 seed: 42
+smoke_n: 200
+
 paths:
   raw_dir: data/raw
   interim_dir: data/interim
   processed_dir: data/processed
   labels_json: data/labels.json
-  manual_test_csv: data/manual/test_manual.csv
+  manual_test_csv: data/manual/test_manual.csv              # your ~150 hand-written messages
+  review_test_csv: data/manual/test_synthetic_review.csv    # 350 LLM test rows for you to check
+
+# Knobs that shape the planned label / language mix (shared by train and test generation).
+plan:
+  lang_mix_target: {hinglish: 0.40, tenglish: 0.30, english: 0.25, other: 0.05}
+  sentiment_weights: {negative: 0.55, neutral: 0.25, positive: 0.20}
+  urgency_given_sentiment:
+    negative: {low: 0.15, medium: 0.45, high: 0.40}
+    neutral:  {low: 0.45, medium: 0.35, high: 0.20}
+    positive: {low: 0.85, medium: 0.15, high: 0.0}
+  domains: [e-commerce, food delivery, banking/UPI, telecom]
+  styles: [casual chat, formal email, angry rant, short and blunt, polite request,
+           sarcastic, app-store review, tweet tagging the company, voice-to-text style]
+  length_choices: [5, 8, 12, 18, 25, 35, 45, 60]
+  typo_rate: 0.3
+  native_script_rate: 0.2
+
+# 1a. Training data generator: Gemini free tier.
 synthetic:
   n_examples: 6000
-  batch_size: 20            # examples requested per LLM call
-  provider: null            # TO CONFIRM in Phase 1 (train generator)
-  model: null
-  lang_mix_target: {hinglish: 0.40, tenglish: 0.30, english: 0.25, other: 0.05}
-  domains: [e-commerce, food delivery, banking/UPI, telecom]
-  length_words: [5, 60]
-  max_budget_usd: null      # TO CONFIRM
+  batch_size: 20
+  generator:
+    provider: gemini
+    model: gemini-2.5-flash        # checked at runtime against the models your key can use
+    requests_per_minute: 8         # stay under free-tier limits
+  temperature: 1.0
+  max_tokens: 8192
+  prices: {input: null, output: null}   # USD per 1M tokens; null = free tier, cost reported as 0
+  max_budget_usd: 0.0
+
+# 1b. Independent labeller: open-weights model on a free Kaggle GPU.
 validation:
-  provider: null            # second, independent labeller
-  model: null
+  labeler:
+    provider: local
+    model: Qwen/Qwen2.5-7B-Instruct   # load is verified at runtime; any chat model works
+  items_per_call: 20
+  calls_per_step: 4                   # prompts batched per GPU forward pass
+  max_tokens: 2048
+
+# 1c. Real public data (sentiment only; category and urgency are null).
+public:
+  cmtet:   # Kusampudi et al., RANLP 2021, Telugu-English tweets (no licence stated in the copy)
+    url: https://raw.githubusercontent.com/yugavardhank/cmtet-sentiment-app/main/data/raw/codemix_sentiment_data.txt
+    sha256: ac1b59e1146530c39d42e0ea37f0d714344bf49c570c5d7ba45787f5805a144c
+    max_examples: 6000
+  sentimix:  # SemEval-2020 Task 9 Hinglish; download the official CoNLL files yourself
+    train_path: null    # e.g. data/raw/sentimix/Hinglish_train_14k_split_conll.txt
+    dev_path: null      # e.g. data/raw/sentimix/Hinglish_dev_3k_split_conll.txt
+    max_examples: 6000
+
+# 1d. Test set generator: different model AND different prompts than training.
 test_synthetic:
   n_examples: 350
-  provider: null            # must differ from synthetic.provider
-  model: null
-public: {}                  # filled in Phase 1c after verifying availability + licences
+  seed: 1234
+  batch_size: 10
+  generator:
+    provider: local
+    model: Qwen/Qwen2.5-7B-Instruct
+  calls_per_step: 4
+  temperature: 0.9
+  max_tokens: 3072
+
+# 1e. Splits.
 splits:
   val_fraction: 0.10
   stratify_by: category
   near_dup_threshold: 0.9   # TF-IDF char n-gram cosine
-smoke_n: 200

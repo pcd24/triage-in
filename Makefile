@@ -21,6 +21,7 @@ lint:
 	$(PY) -m ruff format --check src tests
 
 format:
+	$(PY) -m ruff format src tests
 	$(PY) -m ruff check --fix src tests
 	$(PY) -m ruff format src tests
 
@@ -28,8 +29,14 @@ labels:
 	$(PY) -m vaani.labels --out data/labels.json
 
 # Steps are appended phase by phase as they are implemented.
+# Phase 1 smoke uses an offline fake LLM; outputs go to data/*/smoke/ only.
 smoke: labels
-	@echo "smoke: phase 0 only (labels export) - later phases add their --smoke steps here"
+	$(PY) -m vaani.data.generate_synthetic --smoke
+	$(PY) -m vaani.data.validate_labels --smoke
+	$(PY) -m vaani.data.load_public --smoke
+	$(PY) -m vaani.data.generate_test --smoke --force
+	$(PY) -m vaani.data.merge_manual --smoke
+	$(PY) -m vaani.data.build_splits --smoke
 
 report:
 	$(PY) -m vaani.eval.report

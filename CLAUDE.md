@@ -381,3 +381,21 @@ Sections:
    and offline results.
 6. **How to reproduce:** environment setup and commands for each phase.
 7. **Limitations and future work:** stated honestly.
+---
+
+# PART C — Decisions log (agreed changes to the spec)
+
+- **2026-10-27, zero-cost setup.** The project must run free of charge.
+  - 1a training generator: Gemini API free tier (`prices` left null => cost reported as $0).
+  - 1b independent labeller and 1d test generator: an open-weights instruct model
+    (default `Qwen/Qwen2.5-7B-Instruct`) run locally on a free Kaggle/Colab GPU, so the
+    test set still comes from a different model and different prompts than training.
+  - Phase 4: Gemini is required, OpenAI optional. "Cost per 1M messages" is computed from
+    published paid prices entered by the owner, even though the runs used the free tier.
+- **1c public data.** DravidianLangTech has no Telugu, so the Telugu-English source is
+  CMTET (Kusampudi et al., RANLP 2021), pinned by SHA-256. SentiMix (Hinglish) is used when
+  the owner downloads the official files and sets their paths. Each public source is capped
+  (`max_examples`) so sentiment-only data does not swamp the synthetic data.
+- **Smoke runs** use an offline `FakeProvider` and write only to `data/*/smoke/`.
+- **Deployment:** public GitHub repo with Actions CI (lint, tests, smoke). Later phases add
+  an APK in GitHub Releases and a Hugging Face Spaces demo of the student model.

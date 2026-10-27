@@ -7,7 +7,7 @@ name = "vaani-triage"
 version = "0.1.0"
 description = "Multi-task triage (category, sentiment, urgency) for code-mixed Indian customer complaints, from TF-IDF baseline to an on-device TFLite student."
 readme = "README.md"
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.11"
 authors = [{ name = "Sharan K" }]
 license = { text = "MIT" }
 # Core deps shared by BOTH environments (no torch / tensorflow here).
@@ -29,6 +29,7 @@ torch = [
     "accelerate==1.15.0",
     "python-dotenv==1.2.4",
     "joblib==1.6.0",
+    "google-genai==2.33.0",
 ]
 # TensorFlow environment: student, distillation, TFLite conversion.
 tf = [
