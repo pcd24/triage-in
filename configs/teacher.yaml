@@ -1,0 +1,18 @@
+seed: 42
+encoder: google/muril-base-cased   # verify it loads; fallback below
+fallback_encoder: xlm-roberta-base
+max_len: 128
+batch_size: 16
+grad_accum_steps: 2
+epochs: 4
+lr_encoder: 2.0e-5
+lr_heads: 1.0e-3
+weight_decay: 0.01
+warmup_ratio: 0.1
+grad_clip: 1.0
+dropout: 0.1
+early_stopping_patience: 2
+task_weights: {category: 1.0, sentiment: 1.0, urgency: 1.0}
+use_lora: false
+lora: {r: 8, alpha: 16, dropout: 0.1, target_modules: [query, value]}
+artifacts_dir: artifacts/teacher

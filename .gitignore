@@ -1,0 +1,33 @@
+# secrets
+.env
+
+# environments
+.venv*/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# data (only labels.json and the manual test template are tracked)
+data/raw/
+data/interim/
+data/processed/
+
+# models and big outputs
+artifacts/*
+!artifacts/.gitkeep
+*.npy
+*.tflite
+*.pt
+*.safetensors
+*.joblib
+
+# android build output
+android/**/build/
+android/.gradle/
+android/local.properties
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,15 @@
+seed: 42
+vocab_size: 20000
+oov_buckets: 2000
+max_len: 64
+embed_dim: 128
+conv_filters: 128
+kernel_sizes: [3, 5]
+dense_units: 128
+dropout: 0.3
+batch_size: 64
+epochs: 30
+learning_rate: 1.0e-3
+early_stopping_patience: 3
+distill: {temperature: 2.0, alpha: 0.7}
+artifacts_dir: artifacts/student

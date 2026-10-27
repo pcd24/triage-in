@@ -1,0 +1,10 @@
+seed: 42
+providers:
+  openai: {model: null}     # TO CONFIRM
+  gemini: {model: null}     # TO CONFIRM
+# USD per 1M tokens. Filled in by the project owner from official pricing pages.
+prices_per_1m_tokens:
+  openai: {input: null, output: null}
+  gemini: {input: null, output: null}
+max_budget_usd: null
+cache_dir: data/interim/llm_cache

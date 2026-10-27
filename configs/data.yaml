@@ -1,0 +1,29 @@
+seed: 42
+paths:
+  raw_dir: data/raw
+  interim_dir: data/interim
+  processed_dir: data/processed
+  labels_json: data/labels.json
+  manual_test_csv: data/manual/test_manual.csv
+synthetic:
+  n_examples: 6000
+  batch_size: 20            # examples requested per LLM call
+  provider: null            # TO CONFIRM in Phase 1 (train generator)
+  model: null
+  lang_mix_target: {hinglish: 0.40, tenglish: 0.30, english: 0.25, other: 0.05}
+  domains: [e-commerce, food delivery, banking/UPI, telecom]
+  length_words: [5, 60]
+  max_budget_usd: null      # TO CONFIRM
+validation:
+  provider: null            # second, independent labeller
+  model: null
+test_synthetic:
+  n_examples: 350
+  provider: null            # must differ from synthetic.provider
+  model: null
+public: {}                  # filled in Phase 1c after verifying availability + licences
+splits:
+  val_fraction: 0.10
+  stratify_by: category
+  near_dup_threshold: 0.9   # TF-IDF char n-gram cosine
+smoke_n: 200

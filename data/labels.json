@@ -1,0 +1,33 @@
+{
+  "tasks": {
+    "category": [
+      "refund",
+      "delivery",
+      "payment",
+      "account",
+      "product_quality",
+      "other"
+    ],
+    "sentiment": [
+      "negative",
+      "neutral",
+      "positive"
+    ],
+    "urgency": [
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "task_order": [
+    "category",
+    "sentiment",
+    "urgency"
+  ],
+  "lang_mixes": [
+    "hinglish",
+    "tenglish",
+    "english",
+    "other"
+  ]
+}
