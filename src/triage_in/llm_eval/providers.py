@@ -56,13 +56,18 @@ class GeminiProvider:
         requests_per_minute: float = 10.0,
         max_retries: int = 6,
         api_key_env: str = "GEMINI_API_KEY",
+        timeout_s: float = 120.0,
     ) -> None:
         from google import genai  # lazy: only needed when this provider is used
+        from google.genai import types
 
         api_key = os.environ.get(api_key_env)
         if not api_key:
             raise RuntimeError(f"{api_key_env} is not set (put it in .env or Kaggle Secrets).")
-        self.client = genai.Client(api_key=api_key)
+        # Without a timeout an overloaded model can hang a request for many minutes.
+        self.client = genai.Client(
+            api_key=api_key, http_options=types.HttpOptions(timeout=int(timeout_s * 1000))
+        )
         self.model = model
         self.min_interval = 60.0 / requests_per_minute  # free-tier friendly pacing
         self.max_retries = max_retries
@@ -298,7 +303,11 @@ def build_provider(spec: dict[str, Any]) -> Provider:
     if not model:
         raise ValueError(f"No model set for provider {kind!r}; fill it in the config.")
     if kind == "gemini":
-        return GeminiProvider(model, requests_per_minute=spec.get("requests_per_minute", 10.0))
+        return GeminiProvider(
+            model,
+            requests_per_minute=spec.get("requests_per_minute", 10.0),
+            timeout_s=spec.get("timeout_s", 120.0),
+        )
     if kind == "local":
         return LocalHFProvider(model, max_input_tokens=spec.get("max_input_tokens", 4096))
     raise ValueError(f"Unknown provider {kind!r} (expected 'gemini' or 'local').")
