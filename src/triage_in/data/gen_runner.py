@@ -47,13 +47,32 @@ def estimate(
     return est
 
 
-def _cache_ok(path: Path) -> bool:
+def _cache_ok(path: Path, ids: list[str] | None = None) -> bool:
+    """True if this batch is cached and usable.
+
+    A batch that previously failed to parse is re-parsed from its cached reply first
+    (the parser may have improved since), so a fix never costs another API call.
+    """
     if not path.exists():
         return False
     try:
-        return bool(json.loads(path.read_text(encoding="utf-8")).get("ok"))
+        entry = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return False
+    if entry.get("ok"):
+        return True
+    if ids is None or not entry.get("response"):
+        return False
+    try:
+        texts = _parse_texts(entry["response"], ids)
+    except ValueError:
+        return False
+    if len(texts) < 0.8 * len(ids):
+        return False
+    entry.update(ok=True, n_parsed=len(texts))
+    entry.pop("error", None)
+    path.write_text(json.dumps(entry, ensure_ascii=False, indent=1), encoding="utf-8")
+    return True
 
 
 def _parse_texts(reply: str, ids: list[str]) -> dict[str, str]:
@@ -81,7 +100,11 @@ def run_generation(
     """Generate text for all specs, writing one cache file per batch."""
     cache_dir.mkdir(parents=True, exist_ok=True)
     batches = list(enumerate(batched(specs, batch_size)))
-    todo = [(i, b) for i, b in batches if not _cache_ok(cache_dir / f"b{i:04d}.json")]
+    todo = [
+        (i, b)
+        for i, b in batches
+        if not _cache_ok(cache_dir / f"b{i:04d}.json", [s["id"] for s in b])
+    ]
     logger.info(
         "%d/%d batches already cached; %d to run", len(batches) - len(todo), len(batches), len(todo)
     )

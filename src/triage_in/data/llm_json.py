@@ -7,6 +7,8 @@ import re
 from typing import Any
 
 _FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", flags=re.IGNORECASE | re.MULTILINE)
+# JavaScript-style unquoted keys right after "{" or ",", e.g.  { id: "x", text: "..." }
+_BARE_KEY_RE = re.compile(r'([{,]\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:(?=\s*["\[{\d\-tfn])')
 
 
 def extract_json(text: str) -> Any:
@@ -20,6 +22,8 @@ def extract_json(text: str) -> Any:
         start, end = text.find(open_ch), text.rfind(close_ch)
         if 0 <= start < end:
             candidates.append(text[start : end + 1])
+    # Fallback only if strict parsing fails: some models emit unquoted keys.
+    candidates += [_BARE_KEY_RE.sub(r'\1"\2":', c) for c in candidates]
     for cand in candidates:
         try:
             return json.loads(cand)

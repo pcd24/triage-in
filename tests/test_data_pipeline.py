@@ -239,3 +239,21 @@ def test_manual_csv_gets_ids_and_bad_labels_fail(tmp_path) -> None:
     check(recs)
     with pytest.raises(SystemExit):
         check([{**recs[0], "urgency": None}])  # test rows need every label
+
+
+def test_extract_json_accepts_unquoted_keys() -> None:
+    # Seen from gemini-3.5-flash-lite: JS-style keys. Colons inside text must survive.
+    reply = '[\n  {\n    id: "syn_1",\n    text: "Order: 12345, status: pending"\n  }\n]'
+    assert extract_json_list(reply) == [{"id": "syn_1", "text": "Order: 12345, status: pending"}]
+
+
+def test_failed_cached_batch_is_reparsed_without_new_call(tmp_path) -> None:
+    import json as _json
+
+    from triage_in.data.gen_runner import _cache_ok
+
+    p = tmp_path / "b0000.json"
+    reply = '[{id: "a", text: "refund kab aayega"}, {id: "b", text: "order late hai"}]'
+    p.write_text(_json.dumps({"ok": False, "response": reply, "error": "old parser"}))
+    assert _cache_ok(p, ["a", "b"]) is True
+    assert _json.loads(p.read_text())["ok"] is True
