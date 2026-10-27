@@ -44,6 +44,8 @@ validation:
     provider: local
     model: Qwen/Qwen2.5-7B-Instruct   # load is verified at runtime; any chat model works
   items_per_call: 20
+  drop_on: [category]            # disagreement drops the example
+  mask_on: [sentiment, urgency]  # disagreement nulls just that label (masked in training)
   calls_per_step: 4                   # prompts batched per GPU forward pass
   max_tokens: 2048
 

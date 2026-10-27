@@ -276,3 +276,18 @@ def test_domains_by_category_is_respected() -> None:
     plan_cfg = {**cfg["plan"], "domains_by_category": cfg["test_synthetic"]["domains_by_category"]}
     specs = plan_specs(600, plan_cfg, seed=3, id_prefix="tst")
     assert not [s for s in specs if s["category"] == "delivery" and s["domain"] == "banking/UPI"]
+
+
+def test_filter_and_mask() -> None:
+    from triage_in.data.validate_labels import filter_and_mask
+
+    recs = [_r("a", "x"), _r("b", "y"), _r("c", "z")]  # refund / negative / low
+    pred = {
+        "a": {"category": "refund", "sentiment": "negative", "urgency": "low"},  # full agree
+        "b": {"category": "refund", "sentiment": "neutral", "urgency": "high"},  # mask 2
+        "c": {"category": "payment", "sentiment": "negative", "urgency": "low"},  # drop
+    }
+    out = filter_and_mask(recs, pred, ["category"], ["sentiment", "urgency"])
+    assert [r["id"] for r in out] == ["a", "b"]
+    assert (out[1]["sentiment"], out[1]["urgency"], out[1]["category"]) == (None, None, "refund")
+    assert recs[1]["urgency"] == "low"  # input not mutated

@@ -57,6 +57,32 @@ def agreement_report(
     return report
 
 
+def filter_and_mask(
+    records: list[dict[str, Any]],
+    predicted: dict[str, dict[str, str]],
+    drop_on: list[str],
+    mask_on: list[str],
+) -> list[dict[str, Any]]:
+    """Keep a label only where both models agree.
+
+    - Disagreement on a `drop_on` task (category) drops the whole example.
+    - Disagreement on a `mask_on` task (e.g. urgency) sets just that label to None, so the
+      example still trains the other tasks and the noisy label is masked out of the loss.
+    - Examples the labeller could not label are dropped.
+    """
+    kept = []
+    for r in records:
+        p = predicted.get(r["id"])
+        if p is None or any(p[t] != r[t] for t in drop_on):
+            continue
+        out = dict(r)
+        for t in mask_on:
+            if p[t] != r[t]:
+                out[t] = None
+        kept.append(out)
+    return kept
+
+
 def label_all(
     records: list[dict[str, Any]],
     provider: Provider,
@@ -83,6 +109,7 @@ def label_all(
             (cache_dir / f"b{i:04d}.json").write_text(
                 json.dumps(entry, ensure_ascii=False), encoding="utf-8"
             )
+        logger.info("labelled batches up to %d of %d", step[-1][0], len(batches) - 1)
 
     predicted: dict[str, dict[str, str]] = {}
     parse_failures = 0
@@ -145,11 +172,10 @@ def main() -> None:
         vcfg["max_tokens"],
     )
     report = agreement_report(records, predicted)
-    kept = [
-        r
-        for r in records
-        if r["id"] in predicted and predicted[r["id"]]["category"] == r["category"]
-    ]
+    kept = filter_and_mask(
+        records, predicted, vcfg.get("drop_on", ["category"]), vcfg.get("mask_on", [])
+    )
+    report["n_labels_kept"] = {t: sum(r[t] is not None for r in kept) for t in TASK_NAMES}
     report["n_kept"] = len(kept)
     report["labeler_model"] = provider.model
     write_jsonl(dirs["interim"] / "validated.jsonl", kept)
