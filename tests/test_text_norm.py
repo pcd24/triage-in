@@ -3,7 +3,7 @@ import sys
 
 import pytest
 
-from vaani.text_norm import normalize
+from triage_in.text_norm import normalize
 
 
 @pytest.mark.parametrize(
@@ -48,7 +48,7 @@ def test_idempotent() -> None:
 
 def test_shared_modules_do_not_import_frameworks() -> None:
     code = (
-        "import sys, vaani.labels, vaani.text_norm;"
+        "import sys, triage_in.labels, triage_in.text_norm;"
         "bad=[m for m in ('torch','tensorflow') if m in sys.modules];"
         "sys.exit(1 if bad else 0)"
     )

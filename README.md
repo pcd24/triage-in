@@ -1,4 +1,4 @@
-# VaaniTriage
+# Triage-IN
 
 Multi-task triage (**category**, **sentiment**, **urgency**) for code-mixed Indian customer
 complaints in Hinglish, Telugu-English and English. It compares a TF-IDF baseline, a zero-shot
@@ -23,12 +23,12 @@ make smoke            # whole pipeline on ~200 rows with an offline fake LLM
 
 | Step | What | Command | Where |
 |---|---|---|---|
-| 1a | ~6,000 synthetic complaints (Gemini, labels by construction) | `python -m vaani.data.generate_synthetic --yes` | Kaggle notebook |
-| 1b | Blind second labeller, drop category disagreements | `python -m vaani.data.validate_labels --yes` | Kaggle notebook |
-| 1c | Real public sentiment data (CMTET Telugu-English, SentiMix Hinglish) | `python -m vaani.data.load_public` | anywhere |
-| 1d | 350 test candidates (different model + prompts) → **human review** | `python -m vaani.data.generate_test --yes` | Kaggle notebook |
-| 1d | Merge reviewed rows + hand-written messages | `python -m vaani.data.merge_manual` | anywhere |
-| 1e | Dedup, leakage guard, 90/10 split, stats | `python -m vaani.data.build_splits` | anywhere |
+| 1a | ~6,000 synthetic complaints (Gemini, labels by construction) | `python -m triage_in.data.generate_synthetic --yes` | Kaggle notebook |
+| 1b | Blind second labeller, drop category disagreements | `python -m triage_in.data.validate_labels --yes` | Kaggle notebook |
+| 1c | Real public sentiment data (CMTET Telugu-English, SentiMix Hinglish) | `python -m triage_in.data.load_public` | anywhere |
+| 1d | 350 test candidates (different model + prompts) → **human review** | `python -m triage_in.data.generate_test --yes` | Kaggle notebook |
+| 1d | Merge reviewed rows + hand-written messages | `python -m triage_in.data.merge_manual` | anywhere |
+| 1e | Dedup, leakage guard, 90/10 split, stats | `python -m triage_in.data.build_splits` | anywhere |
 
 The LLM steps live in [`notebooks/phase1_data_kaggle.ipynb`](notebooks/phase1_data_kaggle.ipynb).
 Without `--yes`, each LLM script only prints the planned calls, tokens and cost.

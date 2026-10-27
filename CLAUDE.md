@@ -1,4 +1,4 @@
-# CLAUDE.md — VaaniTriage: Complete Project Specification and Working Rules
+# CLAUDE.md — Triage-IN: Complete Project Specification and Working Rules
 
 This file is the single source of truth for this repository. Read it fully before
 writing any code. Part A covers how to work; Part B is the technical specification.
@@ -8,7 +8,7 @@ writing any code. Part A covers how to work; Part B is the technical specificati
 # PART A — Working rules
 
 ## Project summary
-VaaniTriage is a multi-task classifier for code-mixed Indian customer complaints
+Triage-IN is a multi-task classifier for code-mixed Indian customer complaints
 (Hinglish, Telugu-English, English). It predicts **category**, **sentiment**, and
 **urgency** for each message, and compares four approaches on accuracy, cost,
 latency, and model size:
@@ -38,7 +38,7 @@ runs the TFLite model offline.
    a metrics.json file produced by running code. Use placeholders until then.
 2. **Never touch the test set during training or tuning.** Use the validation set for
    early stopping, hyperparameters, and model selection. Only the scripts in
-   `src/vaani/eval/` and `src/vaani/llm_eval/` may read `test.jsonl`.
+   `src/triage_in/eval/` and `src/triage_in/llm_eval/` may read `test.jsonl`.
 3. **Never guess dataset IDs, model IDs, or library APIs.** Verify they exist (check
    docs, `pip show`, or try loading). If a dataset is unavailable, tell me and
    propose a fallback.
@@ -77,7 +77,7 @@ torch or tensorflow, so they work in both environments.
 # PART B — Technical specification
 
 ## 1. Label schema
-Defined once in `src/vaani/labels.py` and exported to `data/labels.json` (used by Android).
+Defined once in `src/triage_in/labels.py` and exported to `data/labels.json` (used by Android).
 
 - **category** (6): `refund`, `delivery`, `payment`, `account`, `product_quality`, `other`
 - **sentiment** (3): `negative`, `neutral`, `positive`
@@ -95,7 +95,7 @@ Defined once in `src/vaani/labels.py` and exported to `data/labels.json` (used b
 
 ## 2. Repository structure
 ```
-vaani-triage/
+triage-in/
 ├── CLAUDE.md
 ├── README.md
 ├── pyproject.toml            # extras: [torch], [tf], [dev]
@@ -111,7 +111,7 @@ vaani-triage/
 ├── data/                     # raw/, interim/, processed/ are gitignored
 │   ├── labels.json
 │   └── manual/test_manual.csv
-├── src/vaani/
+├── src/triage_in/
 │   ├── labels.py             # no torch/tf imports
 │   ├── text_norm.py          # no torch/tf imports
 │   ├── data/

@@ -6,7 +6,7 @@ Sources (sentiment only, so category and urgency are null and masked in training
 - SentiMix: SemEval-2020 Task 9 Hinglish tweets. Official CoNLL files; you download them
   and set the paths in configs/data.yaml (skipped with a warning if not set).
 
-    python -m vaani.data.load_public
+    python -m triage_in.data.load_public
 """
 
 from __future__ import annotations
@@ -21,8 +21,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from vaani.labels import validate_record
-from vaani.utils import REPO_ROOT, data_dirs, load_config, setup_logging, write_jsonl
+from triage_in.labels import validate_record
+from triage_in.utils import REPO_ROOT, data_dirs, load_config, setup_logging, write_jsonl
 
 logger = logging.getLogger(__name__)
 

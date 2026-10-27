@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from vaani import labels as L
+from triage_in import labels as L
 
 
 def test_schema_sizes() -> None:

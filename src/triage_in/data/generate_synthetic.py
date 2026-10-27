@@ -3,9 +3,9 @@
 Labels come from construction (each prompt states the target labels). Without
 --yes the script only prints the planned calls, tokens and cost, then exits.
 
-    python -m vaani.data.generate_synthetic            # estimate only
-    python -m vaani.data.generate_synthetic --yes      # run (resumable)
-    python -m vaani.data.generate_synthetic --smoke    # offline fake run, 200 rows
+    python -m triage_in.data.generate_synthetic            # estimate only
+    python -m triage_in.data.generate_synthetic --yes      # run (resumable)
+    python -m triage_in.data.generate_synthetic --smoke    # offline fake run, 200 rows
 """
 
 from __future__ import annotations
@@ -15,11 +15,11 @@ import json
 import logging
 from typing import Any
 
-from vaani import prompts
-from vaani.data.gen_runner import collect, estimate, run_generation
-from vaani.data.spec_plan import plan_specs
-from vaani.llm_eval.providers import FakeProvider, GeminiProvider, Provider, build_provider
-from vaani.utils import data_dirs, load_config, set_seed, setup_logging, write_jsonl
+from triage_in import prompts
+from triage_in.data.gen_runner import collect, estimate, run_generation
+from triage_in.data.spec_plan import plan_specs
+from triage_in.llm_eval.providers import FakeProvider, GeminiProvider, Provider, build_provider
+from triage_in.utils import data_dirs, load_config, set_seed, setup_logging, write_jsonl
 
 logger = logging.getLogger(__name__)
 

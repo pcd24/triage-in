@@ -4,7 +4,7 @@ Uses a different model and different prompts than the training generator, so the
 test set does not inherit the training generator's phrasing. Output is a CSV you
 check by hand: fix any wrong label and set `verified` to `yes` (or `drop`).
 
-    python -m vaani.data.generate_test --yes
+    python -m triage_in.data.generate_test --yes
 """
 
 from __future__ import annotations
@@ -14,11 +14,11 @@ import csv
 import logging
 from pathlib import Path
 
-from vaani import prompts
-from vaani.data.gen_runner import collect, run_generation
-from vaani.data.spec_plan import plan_specs
-from vaani.llm_eval.providers import FakeProvider, Provider, build_provider
-from vaani.utils import REPO_ROOT, data_dirs, load_config, setup_logging
+from triage_in import prompts
+from triage_in.data.gen_runner import collect, run_generation
+from triage_in.data.spec_plan import plan_specs
+from triage_in.llm_eval.providers import FakeProvider, Provider, build_provider
+from triage_in.utils import REPO_ROOT, data_dirs, load_config, setup_logging
 
 logger = logging.getLogger(__name__)
 

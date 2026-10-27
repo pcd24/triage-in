@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from vaani.labels import TASKS
+from triage_in.labels import TASKS
 
 LABEL_GUIDE = """Label definitions
 - category (topic): refund, delivery, payment, account, product_quality, other

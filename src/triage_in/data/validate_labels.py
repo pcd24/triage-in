@@ -4,8 +4,8 @@ The labeller never sees the intended labels. Examples where it disagrees on
 category are dropped; agreement rates for all three tasks are logged, because
 low urgency/sentiment agreement says something about how fuzzy those labels are.
 
-    python -m vaani.data.validate_labels --yes
-    python -m vaani.data.validate_labels --smoke
+    python -m triage_in.data.validate_labels --yes
+    python -m triage_in.data.validate_labels --smoke
 """
 
 from __future__ import annotations
@@ -16,12 +16,12 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from vaani import prompts
-from vaani.data.llm_json import extract_json_list
-from vaani.data.spec_plan import batched
-from vaani.labels import TASK_NAMES, TASKS
-from vaani.llm_eval.providers import FakeProvider, Provider, build_provider
-from vaani.utils import data_dirs, load_config, read_jsonl, setup_logging, write_jsonl
+from triage_in import prompts
+from triage_in.data.llm_json import extract_json_list
+from triage_in.data.spec_plan import batched
+from triage_in.labels import TASK_NAMES, TASKS
+from triage_in.llm_eval.providers import FakeProvider, Provider, build_provider
+from triage_in.utils import data_dirs, load_config, read_jsonl, setup_logging, write_jsonl
 
 logger = logging.getLogger(__name__)
 

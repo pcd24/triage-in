@@ -9,7 +9,7 @@ from __future__ import annotations
 import random
 from typing import Any
 
-from vaani.labels import LANG_MIXES, TASKS
+from triage_in.labels import LANG_MIXES, TASKS
 
 
 def exact_counts(n: int, weights: dict[str, float]) -> dict[str, int]:

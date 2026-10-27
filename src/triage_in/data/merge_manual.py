@@ -6,7 +6,7 @@ Combines
 into data/interim/test.jsonl. Refuses to run while any reviewed row is unchecked,
 so unverified labels can never reach the test set.
 
-    python -m vaani.data.merge_manual
+    python -m triage_in.data.merge_manual
 """
 
 from __future__ import annotations
@@ -18,8 +18,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from vaani.labels import TASK_NAMES, validate_record
-from vaani.utils import REPO_ROOT, data_dirs, load_config, setup_logging, write_jsonl
+from triage_in.labels import TASK_NAMES, validate_record
+from triage_in.utils import REPO_ROOT, data_dirs, load_config, setup_logging, write_jsonl
 
 logger = logging.getLogger(__name__)
 

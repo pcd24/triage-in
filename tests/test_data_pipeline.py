@@ -5,20 +5,20 @@ from collections import Counter
 
 import pytest
 
-from vaani.data.build_splits import (
+from triage_in.data.build_splits import (
     char_vectorizer,
     dedup_and_guard,
     exact_dedup,
     near_dup_mask,
     split_train_val,
 )
-from vaani.data.llm_json import extract_json, extract_json_list
-from vaani.data.load_public import lang_mix_from_tags, parse_cmtet, parse_sentimix_conll
-from vaani.data.merge_manual import check, read_manual, read_reviewed
-from vaani.data.spec_plan import batched, exact_counts, plan_specs
-from vaani.data.validate_labels import agreement_report, parse_labels
-from vaani.labels import TASKS, validate_record
-from vaani.utils import load_config
+from triage_in.data.llm_json import extract_json, extract_json_list
+from triage_in.data.load_public import lang_mix_from_tags, parse_cmtet, parse_sentimix_conll
+from triage_in.data.merge_manual import check, read_manual, read_reviewed
+from triage_in.data.spec_plan import batched, exact_counts, plan_specs
+from triage_in.data.validate_labels import agreement_report, parse_labels
+from triage_in.labels import TASKS, validate_record
+from triage_in.utils import load_config
 
 # --------------------------------------------------------------------------- llm json
 

@@ -259,7 +259,7 @@ class FakeProvider:
     ) -> list[LLMResult]:
         import json
 
-        from vaani.labels import TASKS
+        from triage_in.labels import TASKS
 
         out = []
         for p in prompts:

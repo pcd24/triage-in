@@ -12,9 +12,9 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from vaani.data.llm_json import extract_json_list
-from vaani.data.spec_plan import batched
-from vaani.llm_eval.providers import Provider
+from triage_in.data.llm_json import extract_json_list
+from triage_in.data.spec_plan import batched
+from triage_in.llm_eval.providers import Provider
 
 logger = logging.getLogger(__name__)
 

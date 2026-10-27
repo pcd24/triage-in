@@ -9,7 +9,7 @@ Steps
    their own stratum).
 6. data_stats.json: label distributions per split and per lang_mix.
 
-    python -m vaani.data.build_splits
+    python -m triage_in.data.build_splits
 """
 
 from __future__ import annotations
@@ -25,9 +25,9 @@ from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
 
-from vaani.labels import TASK_NAMES, validate_record
-from vaani.text_norm import normalize
-from vaani.utils import data_dirs, load_config, read_jsonl, set_seed, setup_logging, write_jsonl
+from triage_in.labels import TASK_NAMES, validate_record
+from triage_in.text_norm import normalize
+from triage_in.utils import data_dirs, load_config, read_jsonl, set_seed, setup_logging, write_jsonl
 
 logger = logging.getLogger(__name__)
 NULL = "_null"  # stratum / stats key for a missing label

@@ -1,4 +1,4 @@
-# VaaniTriage task runner. Run each target inside the matching virtual env:
+# Triage-IN task runner. Run each target inside the matching virtual env:
 #   .venv-torch  -> data, baseline, teacher, LLM eval
 #   .venv-tf     -> student, distillation, TFLite
 PY ?= python
@@ -26,17 +26,17 @@ format:
 	$(PY) -m ruff format src tests
 
 labels:
-	$(PY) -m vaani.labels --out data/labels.json
+	$(PY) -m triage_in.labels --out data/labels.json
 
 # Steps are appended phase by phase as they are implemented.
 # Phase 1 smoke uses an offline fake LLM; outputs go to data/*/smoke/ only.
 smoke: labels
-	$(PY) -m vaani.data.generate_synthetic --smoke
-	$(PY) -m vaani.data.validate_labels --smoke
-	$(PY) -m vaani.data.load_public --smoke
-	$(PY) -m vaani.data.generate_test --smoke --force
-	$(PY) -m vaani.data.merge_manual --smoke
-	$(PY) -m vaani.data.build_splits --smoke
+	$(PY) -m triage_in.data.generate_synthetic --smoke
+	$(PY) -m triage_in.data.validate_labels --smoke
+	$(PY) -m triage_in.data.load_public --smoke
+	$(PY) -m triage_in.data.generate_test --smoke --force
+	$(PY) -m triage_in.data.merge_manual --smoke
+	$(PY) -m triage_in.data.build_splits --smoke
 
 report:
-	$(PY) -m vaani.eval.report
+	$(PY) -m triage_in.eval.report
