@@ -47,6 +47,13 @@ def plan_specs(n: int, cfg: dict[str, Any], seed: int, id_prefix: str) -> list[d
     rng.shuffle(langs)
     rng.shuffle(cats)
 
+    # Optional category -> compatible domains (e.g. no "delivery" complaint about a UPI
+    # app). Only used when configured, so plans made without it stay byte-identical.
+    by_cat = cfg.get("domains_by_category") or {}
+
+    def domains_for(cat: str) -> list[str]:
+        return by_cat.get(cat, cfg["domains"])
+
     specs = []
     for i, (lang, cat) in enumerate(zip(langs, cats, strict=True)):
         sentiment = _pick(rng, cfg["sentiment_weights"])
@@ -63,7 +70,7 @@ def plan_specs(n: int, cfg: dict[str, Any], seed: int, id_prefix: str) -> list[d
                 "urgency": urgency,
                 "lang_mix": lang,
                 "script": script,
-                "domain": rng.choice(cfg["domains"]),
+                "domain": rng.choice(domains_for(cat)),
                 "style": rng.choice(cfg["styles"]),
                 "length": rng.choice(cfg["length_choices"]),
                 "typos": rng.random() < cfg["typo_rate"],

@@ -39,7 +39,8 @@ def main() -> None:
     cfg = load_config(args.config)
     tcfg = cfg["test_synthetic"]
     n = cfg["smoke_n"] // 4 if args.smoke else tcfg["n_examples"]
-    specs = plan_specs(n, cfg["plan"], seed=tcfg["seed"], id_prefix="tst")
+    plan_cfg = {**cfg["plan"], "domains_by_category": tcfg.get("domains_by_category")}
+    specs = plan_specs(n, plan_cfg, seed=tcfg["seed"], id_prefix="tst")
     dirs = data_dirs(cfg, args.smoke)
     review_csv = (
         dirs["interim"] / "test_synthetic_review.csv"

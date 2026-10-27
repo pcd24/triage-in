@@ -257,3 +257,22 @@ def test_failed_cached_batch_is_reparsed_without_new_call(tmp_path) -> None:
     p.write_text(_json.dumps({"ok": False, "response": reply, "error": "old parser"}))
     assert _cache_ok(p, ["a", "b"]) is True
     assert _json.loads(p.read_text())["ok"] is True
+
+
+def test_training_plan_is_frozen() -> None:
+    # Cached generator replies are joined to planned labels by id, so the training
+    # plan must never change silently. Update this hash only if you regenerate 1a.
+    import hashlib
+    import json as _json
+
+    cfg = load_config("configs/data.yaml")
+    specs = plan_specs(6000, cfg["plan"], seed=cfg["seed"], id_prefix="syn")
+    digest = hashlib.sha256(_json.dumps(specs, sort_keys=True).encode()).hexdigest()
+    assert digest == "1453718748d404dfee0c7123c59cb594858c042b78a80287db724b4dfbb615be"
+
+
+def test_domains_by_category_is_respected() -> None:
+    cfg = load_config("configs/data.yaml")
+    plan_cfg = {**cfg["plan"], "domains_by_category": cfg["test_synthetic"]["domains_by_category"]}
+    specs = plan_specs(600, plan_cfg, seed=3, id_prefix="tst")
+    assert not [s for s in specs if s["category"] == "delivery" and s["domain"] == "banking/UPI"]

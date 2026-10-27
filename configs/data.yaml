@@ -66,6 +66,11 @@ test_synthetic:
   generator:
     provider: local
     model: Qwen/Qwen2.5-7B-Instruct
+  # Keep each category with a domain where it makes sense (fixes e.g. "delivery" +
+  # "banking/UPI", which the training generator turned into payment complaints).
+  domains_by_category:
+    delivery: [e-commerce, food delivery, telecom]
+    product_quality: [e-commerce, food delivery, telecom]
   calls_per_step: 4
   temperature: 0.9
   max_tokens: 3072
