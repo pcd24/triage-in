@@ -30,7 +30,7 @@ synthetic:
   batch_size: 20
   generator:
     provider: gemini
-    model: gemini-2.5-flash        # checked at runtime against the models your key can use
+    model: gemini-3.8-flash        # per the API error for new keys; still checked at runtime
     requests_per_minute: 8         # stay under free-tier limits
   temperature: 1.0
   max_tokens: 8192

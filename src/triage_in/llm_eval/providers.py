@@ -100,8 +100,12 @@ class GeminiProvider:
                     output_tokens=int(getattr(usage, "candidates_token_count", 0) or 0)
                     + int(getattr(usage, "thoughts_token_count", 0) or 0),
                 )
-            except Exception as e:  # rate limits / transient server errors
-                if attempt == self.max_retries:
+            except Exception as e:
+                # Retry only rate limits (429) and server errors (5xx). Anything else,
+                # e.g. 404 retired model or 400 bad request, will never succeed on retry.
+                code = getattr(e, "code", None)
+                retryable = code is None or code == 429 or (isinstance(code, int) and code >= 500)
+                if not retryable or attempt == self.max_retries:
                     raise
                 logger.warning("Gemini call failed (%s); retry %d in %.0fs", e, attempt, delay)
                 time.sleep(delay)
