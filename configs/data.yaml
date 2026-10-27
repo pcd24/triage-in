@@ -30,7 +30,7 @@ synthetic:
   batch_size: 20
   generator:
     provider: gemini
-    model: gemini-3.8-flash        # per the API error for new keys; still checked at runtime
+    model: gemini-3.5-flash-lite   # fast + least congested on the free tier; checked at runtime
     requests_per_minute: 8         # stay under free-tier limits
     timeout_s: 120                 # give up on a hung request and retry
   temperature: 1.0

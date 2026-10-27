@@ -153,7 +153,13 @@ class LocalHFProvider:
         if self.tok.pad_token is None:
             self.tok.pad_token = self.tok.eos_token
         dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-        self.lm = AutoModelForCausalLM.from_pretrained(model, dtype=dtype, device_map="auto")
+        try:  # transformers >= 4.56 uses `dtype`; older versions (e.g. a preinstalled
+            # Kaggle image) only know `torch_dtype`
+            self.lm = AutoModelForCausalLM.from_pretrained(model, dtype=dtype, device_map="auto")
+        except TypeError:
+            self.lm = AutoModelForCausalLM.from_pretrained(
+                model, torch_dtype=dtype, device_map="auto"
+            )
         self.lm.eval()
         self.max_input_tokens = max_input_tokens
 
