@@ -399,3 +399,10 @@ Sections:
 - **Smoke runs** use an offline `FakeProvider` and write only to `data/*/smoke/`.
 - **Deployment:** public GitHub repo with Actions CI (lint, tests, smoke). Later phases add
   an APK in GitHub Releases and a Hugging Face Spaces demo of the student model.
+- **2026-10-28, 1d test generator.** Qwen2.5-7B produced unusable test candidates (almost no
+  Telugu, labels ignored), so the test generator is `gemini-3.5-flash`: a different model from
+  the training generator (`gemini-3.5-flash-lite`) with different prompts, but the same provider.
+  This is a known limitation; it is mitigated by full human review of every test label and the
+  ~150 hand-written messages. Qwen2.5-7B remains the independent labeller in 1b.
+- **2026-10-28, 1b labels.** Category disagreement drops the example; sentiment/urgency
+  disagreement nulls only that label (masked in training).

@@ -291,3 +291,13 @@ def test_filter_and_mask() -> None:
     assert [r["id"] for r in out] == ["a", "b"]
     assert (out[1]["sentiment"], out[1]["urgency"], out[1]["category"]) == (None, None, "refund")
     assert recs[1]["urgency"] == "low"  # input not mutated
+
+
+def test_review_csv_overwrite_guard(tmp_path) -> None:
+    from triage_in.data.generate_test import has_review_work
+
+    p = tmp_path / "r.csv"
+    p.write_text("id,text,verified\na,x,\nb,y,\n", encoding="utf-8")
+    assert has_review_work(p) is False  # untouched -> safe to regenerate
+    p.write_text("id,text,verified\na,x,yes\nb,y,\n", encoding="utf-8")
+    assert has_review_work(p) is True

@@ -17,7 +17,7 @@ from pathlib import Path
 from triage_in import prompts
 from triage_in.data.gen_runner import collect, run_generation
 from triage_in.data.spec_plan import plan_specs
-from triage_in.llm_eval.providers import FakeProvider, Provider, build_provider
+from triage_in.llm_eval.providers import FakeProvider, GeminiProvider, Provider, build_provider
 from triage_in.utils import REPO_ROOT, data_dirs, load_config, setup_logging
 
 logger = logging.getLogger(__name__)
@@ -47,9 +47,9 @@ def main() -> None:
         if args.smoke
         else REPO_ROOT / cfg["paths"]["review_test_csv"]
     )
-    if review_csv.exists() and not args.force:
+    if review_csv.exists() and not args.force and has_review_work(review_csv):
         raise SystemExit(
-            f"{review_csv} exists (it may contain your corrections). Use --force to overwrite."
+            f"{review_csv} already has reviewed rows. Use --force to overwrite your corrections."
         )
 
     logger.info(
@@ -65,8 +65,14 @@ def main() -> None:
             logger.info("Estimate only. Re-run with --yes to generate.")
             return
         provider = build_provider(tcfg["generator"])
+        if (
+            isinstance(provider, GeminiProvider)
+            and provider.model not in provider.available_models()
+        ):
+            raise SystemExit(f"Model {provider.model!r} is not available to this API key.")
 
-    cache = dirs["raw"] / "test_synthetic"
+    # One cache folder per generator model, so switching models never reuses old replies.
+    cache = dirs["raw"] / "test_synthetic" / tcfg["generator"]["model"].replace("/", "__")
     run_generation(
         specs,
         provider,
@@ -81,6 +87,12 @@ def main() -> None:
     records, usage = collect(specs, cache, tcfg["batch_size"], source="synthetic_test")
     write_review_csv(review_csv, records)
     logger.info("Wrote %d rows to %s for review; usage %s", len(records), review_csv, usage)
+
+
+def has_review_work(path: Path) -> bool:
+    """True if any row has been marked in `verified` (i.e. a human started reviewing)."""
+    with path.open(encoding="utf-8-sig") as f:
+        return any((row.get("verified") or "").strip() for row in csv.DictReader(f))
 
 
 def write_review_csv(path: Path, records: list[dict]) -> None:

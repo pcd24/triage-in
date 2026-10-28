@@ -65,9 +65,13 @@ test_synthetic:
   n_examples: 350
   seed: 1234
   batch_size: 10
+  # Qwen2.5-7B was tried first (2026-10-28) and rejected: it wrote almost no Telugu and often
+  # ignored the requested labels. A different Gemini model (not the training one) is used instead.
   generator:
-    provider: local
-    model: Qwen/Qwen2.5-7B-Instruct
+    provider: gemini
+    model: gemini-3.5-flash        # training uses gemini-3.5-flash-lite; separate free quota
+    requests_per_minute: 8
+    timeout_s: 120
   # Keep each category with a domain where it makes sense (fixes e.g. "delivery" +
   # "banking/UPI", which the training generator turned into payment complaints).
   domains_by_category:
