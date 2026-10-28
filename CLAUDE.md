@@ -406,3 +406,7 @@ Sections:
   ~150 hand-written messages. Qwen2.5-7B remains the independent labeller in 1b.
 - **2026-10-28, 1b labels.** Category disagreement drops the example; sentiment/urgency
   disagreement nulls only that label (masked in training).
+- **2026-10-28, 1d quota.** `gemini-3.5-flash` (served as `gemini-3.6-flash`) allows only
+  20 free requests/day. Its 10 finished test batches are kept; `gemini-3.1-flash-lite`
+  generates the remaining batches. Each test row records its `gen_model`.
+

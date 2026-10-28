@@ -96,14 +96,19 @@ def run_generation(
     calls_per_step: int = 1,
     temperature: float = 1.0,
     max_tokens: int = 4096,
+    skip: set[int] | None = None,
 ) -> None:
-    """Generate text for all specs, writing one cache file per batch."""
+    """Generate text for all specs, writing one cache file per batch.
+
+    `skip`: batch indices already done elsewhere (e.g. by another model's cache).
+    """
     cache_dir.mkdir(parents=True, exist_ok=True)
     batches = list(enumerate(batched(specs, batch_size)))
     todo = [
         (i, b)
         for i, b in batches
-        if not _cache_ok(cache_dir / f"b{i:04d}.json", [s["id"] for s in b])
+        if i not in (skip or set())
+        and not _cache_ok(cache_dir / f"b{i:04d}.json", [s["id"] for s in b])
     ]
     logger.info(
         "%d/%d batches already cached; %d to run", len(batches) - len(todo), len(batches), len(todo)
@@ -143,26 +148,52 @@ def run_generation(
         logger.info("cached batches up to %d", step[-1][0])
 
 
+def done_batches(specs: list[dict[str, Any]], cache_dirs: list[Path], batch_size: int) -> set[int]:
+    """Indices of batches that already have a usable reply in any of `cache_dirs`."""
+    return {
+        i
+        for i, b in enumerate(batched(specs, batch_size))
+        if any(_cache_ok(d / f"b{i:04d}.json", [s["id"] for s in b]) for d in cache_dirs)
+    }
+
+
 def collect(
-    specs: list[dict[str, Any]], cache_dir: Path, batch_size: int, source: str
+    specs: list[dict[str, Any]],
+    cache_dirs: Path | list[Path],
+    batch_size: int,
+    source: str,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """Join cached texts with their planned labels. Returns (records, usage summary)."""
+    """Join cached texts with their planned labels. Returns (records, usage summary).
+
+    With several cache dirs, each batch is taken from the first dir holding a usable reply,
+    so batches finished by one model are kept when another model fills the gaps.
+    """
+    dirs = [cache_dirs] if isinstance(cache_dirs, Path) else list(cache_dirs)
     records: list[dict[str, Any]] = []
-    usage = {"calls": 0, "input_tokens": 0, "output_tokens": 0, "missing": 0, "failed_batches": 0}
+    usage: dict[str, Any] = {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "missing": 0,
+        "failed_batches": 0,
+        "batches_by_model": {},
+    }
     for i, b in enumerate(batched(specs, batch_size)):
-        path = cache_dir / f"b{i:04d}.json"
-        if not path.exists():
+        entries = []
+        for d in dirs:
+            path = d / f"b{i:04d}.json"
+            if path.exists():
+                entries.append(json.loads(path.read_text(encoding="utf-8")))
+        usage["calls"] += len(entries)
+        usage["input_tokens"] += sum(e.get("input_tokens", 0) for e in entries)
+        usage["output_tokens"] += sum(e.get("output_tokens", 0) for e in entries)
+        entry = next((e for e in entries if e.get("ok")), None)
+        if entry is None:
             usage["failed_batches"] += 1
             usage["missing"] += len(b)
             continue
-        entry = json.loads(path.read_text(encoding="utf-8"))
-        usage["calls"] += 1
-        usage["input_tokens"] += entry.get("input_tokens", 0)
-        usage["output_tokens"] += entry.get("output_tokens", 0)
-        if not entry.get("ok"):
-            usage["failed_batches"] += 1
-            usage["missing"] += len(b)
-            continue
+        model = entry.get("model")
+        usage["batches_by_model"][model] = usage["batches_by_model"].get(model, 0) + 1
         texts = _parse_texts(entry["response"], [s["id"] for s in b])
         for s in b:
             if s["id"] not in texts:
@@ -177,7 +208,7 @@ def collect(
                     "urgency": s["urgency"],
                     "lang_mix": s["lang_mix"],
                     "source": source,
-                    "gen_model": entry.get("model"),
+                    "gen_model": model,
                     "domain": s["domain"],
                 }
             )

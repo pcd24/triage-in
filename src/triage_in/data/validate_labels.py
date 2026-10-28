@@ -111,17 +111,15 @@ def label_all(
             )
         logger.info("labelled batches up to %d of %d", step[-1][0], len(batches) - 1)
 
+    # Labels are matched by message id across ALL cached replies, not by batch position,
+    # so a changed synthetic.jsonl (e.g. a recovered batch) can never misalign labels.
+    all_ids = [r["id"] for r in records]
     predicted: dict[str, dict[str, str]] = {}
     parse_failures = 0
-    for i, b in batches:
-        path = cache_dir / f"b{i:04d}.json"
-        if not path.exists():
-            continue
+    for path in sorted(cache_dir.glob("b*.json")):
         try:
             predicted.update(
-                parse_labels(
-                    json.loads(path.read_text(encoding="utf-8"))["response"], [r["id"] for r in b]
-                )
+                parse_labels(json.loads(path.read_text(encoding="utf-8"))["response"], all_ids)
             )
         except ValueError:
             parse_failures += 1

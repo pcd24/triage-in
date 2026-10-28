@@ -301,3 +301,37 @@ def test_review_csv_overwrite_guard(tmp_path) -> None:
     assert has_review_work(p) is False  # untouched -> safe to regenerate
     p.write_text("id,text,verified\na,x,yes\nb,y,\n", encoding="utf-8")
     assert has_review_work(p) is True
+
+
+def test_collect_prefers_first_usable_cache(tmp_path) -> None:
+    import json as _json
+
+    from triage_in.data.gen_runner import collect, done_batches
+
+    specs = [
+        {
+            "id": f"t{i}",
+            "category": "refund",
+            "sentiment": "negative",
+            "urgency": "low",
+            "lang_mix": "hinglish",
+            "domain": "e-commerce",
+        }
+        for i in range(4)
+    ]
+    a, b = tmp_path / "a", tmp_path / "b"
+    a.mkdir()
+    b.mkdir()
+
+    def put(d, i, ok, model):
+        ids = [s["id"] for s in specs[i * 2 : i * 2 + 2]]
+        resp = _json.dumps([{"id": x, "text": f"{model} {x}"} for x in ids])
+        (d / f"b{i:04d}.json").write_text(_json.dumps({"ok": ok, "response": resp, "model": model}))
+
+    put(a, 0, True, "m1")  # batch 0 done by model 1
+    put(b, 0, True, "m2")  # also by model 2 -> model 1 must win
+    put(b, 1, True, "m2")  # batch 1 only by model 2
+    assert done_batches(specs, [a], 2) == {0}
+    recs, usage = collect(specs, [a, b], 2, source="x")
+    assert [r["gen_model"] for r in recs] == ["m1", "m1", "m2", "m2"]
+    assert usage["batches_by_model"] == {"m1": 1, "m2": 1}
